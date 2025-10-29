@@ -1,0 +1,29 @@
+{
+  "name": "my-ai-dm-bot",
+  "version": "1.0.0",
+  "description": "Prototype d’un assistant de réponses automatiques pour les créateurs OnlyFans.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:openai": "node src/test-openai.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Matthis-source/my-ai-dm-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Matthis-source/my-ai-dm-bot/issues"
+  },
+  "homepage": "https://github.com/Matthis-source/my-ai-dm-bot#readme",
+  "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "dotenv": "^17.2.3",
+    "openai": "^6.7.0",
+    "puppeteer": "^24.27.0"
+  }
+}
+

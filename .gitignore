@@ -1,0 +1,37 @@
+# ------------------------------
+#  Node / JavaScript
+# ------------------------------
+node_modules/          # dépendances npm – jamais versionnées
+
+# ------------------------------
+#  Environnement / secrets
+# ------------------------------
+.env                   # ton token OpenAI, les cookies, etc.
+
+# ------------------------------
+#  Base de données SQLite (si tu veux la garder hors du repo)
+# ------------------------------
+data.sqlite
+
+# ------------------------------
+#  Chromium téléchargé par Puppeteer (facultatif)
+# ------------------------------
+.puppeteer/
+
+# ------------------------------
+#  Fichiers système macOS
+# ------------------------------
+.DS_Store
+
+# ------------------------------
+#  Configurations d’IDE / éditeur
+# ------------------------------
+.vscode/
+.idea/
+
+# ------------------------------
+#  Logs et fichiers temporaires
+# ------------------------------
+*.log
+*.tmp
+

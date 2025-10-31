@@ -1,7 +1,7 @@
 // src/ai/gemini-chat.js - Google Gemini (gratuit)
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "free-tier");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Génère une réponse via Gemini
@@ -20,7 +20,6 @@ HISTORIQUE RÉCENT : ${history.slice(-3).join(' | ') || 'Premier message'}
 
 STYLE DE RÉPONSE :
 - En anglais, chaleureux et professionnel
-- Un peu coquin mais respectueux
 - Bref (1-2 phrases maximum)
 - Engageant, pose une question à la fin
 
@@ -43,35 +42,19 @@ RÉPONDRE au message du fan naturellement.
   } catch (error) {
     console.error("❌ Erreur Gemini:", error.message);
     
-    // Fallback intelligent basé sur le message
-    const fallback = generateFallbackResponse(fanMessage, fanData, templates);
-    return {
-      text: fallback,
-      flagged: false
-    };
-  }
-}
-
-/**
- * Fallback intelligent si Gemini échoue
- */
-function generateFallbackResponse(fanMessage, fanData, templates) {
-  const message = fanMessage.toLowerCase();
-  
-  if (message.includes('price') || message.includes('cost') || message.includes('how much')) {
-    return `The private video is $${fanData.price}! Would you like more details?`;
-  }
-  else if (message.includes('video') || message.includes('content') || message.includes('preview')) {
-    return `I have some exclusive content you might enjoy! It's $${fanData.price} - interested?`;
-  }
-  else if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
-    return `Hey ${fanData.fan_name}! Thanks for your message. How can I help you today?`;
-  }
-  else if (message.includes('thank') || message.includes('thanks')) {
-    return `You're welcome ${fanData.fan_name}! 😊 Let me know if you have any questions.`;
-  }
-  else {
-    return templates?.default || `Thanks for your message ${fanData.fan_name}! I have some exclusive content available.`;
+    // Fallback intelligent
+    const message = fanMessage.toLowerCase();
+    let fallback = templates?.default || "Thanks for your message!";
+    
+    if (message.includes('price') || message.includes('cost')) {
+      fallback = `The private video is $${fanData.price}! Interested?`;
+    } else if (message.includes('video') || message.includes('content')) {
+      fallback = `I have exclusive content for $${fanData.price}! Want details?`;
+    } else if (message.includes('hello') || message.includes('hi')) {
+      fallback = `Hey ${fanData.fan_name}! Thanks for messaging me.`;
+    }
+    
+    return { text: fallback, flagged: false };
   }
 }
 

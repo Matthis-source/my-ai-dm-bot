@@ -1,5 +1,4 @@
 // src/index.js - VERSION CORRIGÉE
-import './server.js';  // Démarrer le serveur healthcheck
 import { launchBrowser, fetchUnreadDMs, sendMessage } from "./connector/onlyfans.js";
 import { initDB, getOrCreateConversation, updateConversation } from "./db/store.js";
 import { generateResponse } from "./ai/chat.js";

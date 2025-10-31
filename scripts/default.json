@@ -1,0 +1,21 @@
+[
+  {
+    "id": "greeting",
+    "type": "greeting",
+    "content": "Hey {fan_name} 👋, thanks for subscribing! How can I make your day hotter? 🔥",
+    "conditions": []
+  },
+  {
+    "id": "upsell_video",
+    "type": "upsell",
+    "content": "I just recorded a private video where I {activity}. It’s only ${price} – want a sneak peek?",
+    "conditions": ["price>5"]
+  },
+  {
+    "id": "not_allowed",
+    "type": "custom",
+    "content": "I’m not comfortable with that request. Let’s keep things fun and safe! 😊",
+    "conditions": ["forbidden"]
+  }
+]
+

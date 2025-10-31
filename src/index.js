@@ -97,7 +97,6 @@ async function mainLoop() {
       await browser.close();
     }
     if (db) {
-      await db.close();
     }
   }
 }

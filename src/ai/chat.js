@@ -1,4 +1,4 @@
-// src/ai/chat.js - Version temporaire
+// src/ai/chat.js - Version corrigée
 import OpenAI from 'openai';
 
 // TEMPORAIRE : Gérer l'absence de clé API
@@ -49,9 +49,9 @@ Réponds en anglais, sois bref et engageant.
 `;
 
   if (!openai) {
-    console.log("❌ OpenAI non disponible - utilisation du template par défaut");
+    console.log("🔧 Mode démo - réponse simulée");
     return {
-      text: templates?.default || "Thanks for your message! I'll get back to you soon.",
+      text: templates?.default || `Thanks for your message ${fanData.fan_name}! (Demo mode)`,
       flagged: false
     };
   }
@@ -70,7 +70,6 @@ Réponds en anglais, sois bref et engageant.
     const responseText = completion.choices[0]?.message?.content?.trim() || 
       templates?.default || "Thanks for your message!";
 
-    // Vérifier la modération
     const flagged = await moderate(responseText);
 
     return {

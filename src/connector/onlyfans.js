@@ -1,46 +1,34 @@
-// src/connector/onlyfans.js - Version temporaire sans variables
+// src/connector/onlyfans.js - Version corrigée
 import puppeteer from 'puppeteer-core';
 
 // TEMPORAIRE : Contourner le problème Railway
 const cookiesEnv = process.env.ONLYFANS_COOKIES;
 
-if (!cookiesEnv) {
-  console.log("⚠️  ONLYFANS_COOKIES manquante - mode démo sans connexion réelle");
-  
-  // Mode démo - simuler une connexion réussie
-  export async function launchBrowser() {
-    console.log("🔧 Mode démo - simulation de connexion OnlyFans");
-    return { 
-      browser: { close: () => {} },
-      page: {
-        goto: () => Promise.resolve(),
-        setCookie: () => Promise.resolve(),
-        evaluate: () => Promise.resolve(true)
-      }
-    };
-  }
+// Fonctions en mode démo
+async function demoLaunchBrowser() {
+  console.log("🔧 Mode démo - simulation de connexion OnlyFans");
+  return { 
+    browser: { close: () => {} },
+    page: {
+      goto: () => Promise.resolve(),
+      setCookie: () => Promise.resolve(),
+      evaluate: () => Promise.resolve(true)
+    }
+  };
+}
 
-  export async function fetchUnreadDMs() {
-    console.log("🔧 Mode démo - simulation de DMs");
-    return []; // Retourner une liste vide
-  }
+async function demoFetchUnreadDMs() {
+  console.log("🔧 Mode démo - simulation de DMs");
+  return [];
+}
 
-  export async function sendMessage() {
-    console.log("🔧 Mode démo - simulation d'envoi de message");
-    return Promise.resolve();
-  }
+async function demoSendMessage() {
+  console.log("🔧 Mode démo - simulation d'envoi de message");
+  return Promise.resolve();
+}
 
-} else {
-  console.log("✅ Cookies chargés depuis process.env");
-
-  // Code original ici...
-
-console.log("✅ Cookies chargés depuis process.env");
-
-/**
- * Lance le navigateur avec les cookies OnlyFans
- */
-export async function launchBrowser() {
+// Fonctions en mode réel
+async function realLaunchBrowser() {
   let cookies;
   try {
     cookies = JSON.parse(cookiesEnv);
@@ -56,31 +44,24 @@ export async function launchBrowser() {
   });
 
   const page = await browser.newPage();
-  
-  // Définir les cookies
   await page.setCookie(...cookies);
   
-  // Aller sur OnlyFans pour vérifier la connexion
   await page.goto('https://onlyfans.com', { waitUntil: 'networkidle2' });
   
-  // Vérifier si on est connecté
   const isLoggedIn = await page.evaluate(() => {
     return document.querySelector('a[href*="/my/profile"]') !== null;
   });
 
   if (!isLoggedIn) {
     await browser.close();
-    throw new Error('❌ Impossible de se connecter – les cookies sont peut-être expirés ou incomplets.');
+    throw new Error('❌ Connexion échouée');
   }
 
   console.log('✅ Connecté à OnlyFans !');
   return { browser, page };
 }
 
-/**
- * Récupère les DMs non lus
- */
-export async function fetchUnreadDMs(page) {
+async function realFetchUnreadDMs(page) {
   await page.goto('https://onlyfans.com/my/chats', { waitUntil: 'networkidle2' });
   
   const unreadDMs = await page.evaluate(() => {
@@ -112,16 +93,24 @@ export async function fetchUnreadDMs(page) {
   return unreadDMs;
 }
 
-/**
- * Envoie un message à un fan
- */
-export async function sendMessage(page, fanId, message) {
+async function realSendMessage(page, fanId, message) {
   await page.goto(`https://onlyfans.com/my/chats/${fanId}`, { waitUntil: 'networkidle2' });
-  
   await page.type('.chat-input textarea', message);
   await page.click('.chat-input button[type="submit"]');
   await page.waitForTimeout(2000);
-  
   console.log(`✅ Message envoyé à ${fanId}`);
+}
+
+// Exporter les fonctions appropriées
+if (!cookiesEnv) {
+  console.log("⚠️  ONLYFANS_COOKIES manquante - mode démo activé");
+  export const launchBrowser = demoLaunchBrowser;
+  export const fetchUnreadDMs = demoFetchUnreadDMs;
+  export const sendMessage = demoSendMessage;
+} else {
+  console.log("✅ Cookies présents - mode réel activé");
+  export const launchBrowser = realLaunchBrowser;
+  export const fetchUnreadDMs = realFetchUnreadDMs;
+  export const sendMessage = realSendMessage;
 }
 

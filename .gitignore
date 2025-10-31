@@ -35,3 +35,8 @@ data.sqlite
 *.log
 *.tmp
 
+.env
+node_modules/
+.DS_Store
+*.log
+

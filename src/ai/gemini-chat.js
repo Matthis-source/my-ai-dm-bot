@@ -27,7 +27,8 @@ RÉPONDRE au message du fan naturellement.
 `;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Utiliser un modèle qui existe vraiment
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     
     const result = await model.generateContent(prompt);
     const response = await result.response;

@@ -1,106 +1,144 @@
-// src/connector/onlyfans.js - Version avec chrome-aws-lambda
-import puppeteer from 'puppeteer-core';
-import chrome from 'chrome-aws-lambda';
+// src/connector/onlyfans.js - Mode démo amélioré et réaliste
+console.log("🎯 Mode démo amélioré - simulation réaliste OnlyFans");
 
-console.log("🚀 Mode RÉEL OnlyFans activé !");
+// Simuler de vrais fans avec des messages variés
+const simulatedFans = [
+  {
+    fanId: "fan_sarah_123",
+    fanName: "Sarah",
+    preview: "Hey, I love your content! Do you have any private videos?",
+    link: "https://onlyfans.com/my/chats/fan_sarah_123"
+  },
+  {
+    fanId: "fan_mike_456", 
+    fanName: "Mike",
+    preview: "What's the price for your exclusive content?",
+    link: "https://onlyfans.com/my/chats/fan_mike_456"
+  },
+  {
+    fanId: "fan_jessica_789",
+    fanName: "Jessica",
+    preview: "Hi! I'm interested in your private shows 😊",
+    link: "https://onlyfans.com/my/chats/fan_jessica_789"
+  }
+];
 
-const cookiesEnv = process.env.ONLYFANS_COOKIES;
-
+/**
+ * Simulation réaliste de connexion OnlyFans
+ */
 export async function launchBrowser() {
-  console.log("🔐 Connexion réelle à OnlyFans...");
+  console.log("⏳ Connexion à OnlyFans...");
   
-  let cookies;
-  try {
-    cookies = JSON.parse(cookiesEnv);
-    console.log(`✅ ${cookies.length} cookie(s) parsé(s)`);
-  } catch (error) {
-    console.error("❌ Erreur de parsing des cookies:", error);
-    throw new Error("Format des cookies invalide");
-  }
-
-  // Configuration pour Render avec chrome-aws-lambda
-  const browser = await puppeteer.launch({
-    args: chrome.args,
-    executablePath: await chrome.executablePath,
-    headless: chrome.headless,
-  });
-
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720 });
-  await page.setCookie(...cookies);
+  // Simuler un temps de connexion réaliste
+  await new Promise(resolve => setTimeout(resolve, 3000));
   
-  console.log("🌐 Navigation vers OnlyFans...");
-  await page.goto('https://onlyfans.com', { 
-    waitUntil: 'networkidle2',
-    timeout: 30000 
-  });
+  console.log("✅ Connecté à OnlyFans ! (simulation réaliste)");
   
-  const isLoggedIn = await page.evaluate(() => {
-    return document.querySelector('a[href*="/my/profile"]') !== null;
-  });
-
-  if (!isLoggedIn) {
-    await browser.close();
-    console.error("❌ Connexion échouée");
-    throw new Error('Connexion à OnlyFans échouée');
-  }
-
-  console.log('✅ Connecté à OnlyFans !');
-  return { browser, page };
+  return { 
+    browser: { 
+      close: () => console.log("🌐 Déconnexion d'OnlyFans")
+    },
+    page: {
+      // Simulation de navigation
+      goto: async (url) => {
+        console.log(`🌐 Navigation: ${url}`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      },
+      
+      // Simulation de cookies (rien à faire)
+      setCookie: async () => {},
+      
+      // Simulation d'évaluation JavaScript
+      evaluate: async (fn) => {
+        // Détecter si c'est pour vérifier la connexion
+        if (fn.toString().includes('profile')) {
+          return true; // Simuler être connecté
+        }
+        
+        // Détecter si c'est pour récupérer les DMs
+        if (fn.toString().includes('chat-list-item') || fn.toString().includes('unread')) {
+          // Retourner un nombre aléatoire de DMs (0-3)
+          const count = Math.floor(Math.random() * 4);
+          if (count === 0) {
+            console.log("📨 Aucun DM non lu trouvé");
+            return [];
+          }
+          
+          // Sélectionner aléatoirement des fans
+          const selectedFans = [];
+          for (let i = 0; i < count; i++) {
+            const randomFan = simulatedFans[Math.floor(Math.random() * simulatedFans.length)];
+            if (!selectedFans.find(f => f.fanId === randomFan.fanId)) {
+              selectedFans.push({...randomFan});
+            }
+          }
+          
+          console.log(`📨 ${selectedFans.length} DM(s) non lu(s) simulé(s)`);
+          return selectedFans;
+        }
+        
+        return true;
+      },
+      
+      // Simulation de frappe au clavier
+      type: async (selector, text) => {
+        console.log(`💬 Envoi de message: "${text.substring(0, 60)}..."`);
+        // Simuler le temps de frappe
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      },
+      
+      // Simulation de clic
+      click: async (selector) => {
+        console.log("🖱️  Clic sur le bouton d'envoi");
+        await new Promise(resolve => setTimeout(resolve, 800));
+      },
+      
+      // Simulation d'attente
+      waitForTimeout: async (ms) => {
+        console.log(`⏰ Attente de ${ms}ms`);
+        await new Promise(resolve => setTimeout(resolve, ms));
+      }
+    }
+  };
 }
 
+/**
+ * Récupération des DMs non lus (simulée)
+ */
 export async function fetchUnreadDMs(page) {
-  console.log("📨 Récupération des DMs non lus...");
+  console.log("🔍 Recherche de DMs non lus...");
   
-  await page.goto('https://onlyfans.com/my/chats', { 
-    waitUntil: 'networkidle2',
-    timeout: 30000 
-  });
+  // Simuler le chargement de la page
+  await page.goto('https://onlyfans.com/my/chats');
+  await page.waitForTimeout(2000);
   
-  await page.waitForTimeout(3000);
-  
+  // Utiliser la fonction evaluate pour simuler la récupération
   const unreadDMs = await page.evaluate(() => {
-    const dms = [];
-    const chatItems = document.querySelectorAll('.chat-list-item');
-    
-    chatItems.forEach(item => {
-      const unreadBadge = item.querySelector('.unread');
-      if (unreadBadge) {
-        const link = item.querySelector('a');
-        const name = item.querySelector('.name');
-        const preview = item.querySelector('.preview');
-        
-        if (link && name) {
-          dms.push({
-            fanId: link.href.split('/').pop(),
-            fanName: name.textContent.trim(),
-            preview: preview ? preview.textContent.trim() : 'No preview',
-            link: link.href
-          });
-        }
-      }
-    });
-    
-    return dms;
+    // Cette fonction sera interceptée par notre simulateur
+    return [];
   });
-
-  console.log(`📨 ${unreadDMs.length} DM(s) non lus récupéré(s)`);
+  
   return unreadDMs;
 }
 
+/**
+ * Envoi de message (simulé)
+ */
 export async function sendMessage(page, fanId, message) {
-  console.log(`✉️  Envoi de message à ${fanId}...`);
+  console.log(`✉️  Préparation de l'envoi à ${fanId}...`);
   
-  await page.goto(`https://onlyfans.com/my/chats/${fanId}`, { 
-    waitUntil: 'networkidle2',
-    timeout: 30000 
-  });
+  // Simuler la navigation vers le chat
+  await page.goto(`https://onlyfans.com/my/chats/${fanId}`);
+  await page.waitForTimeout(1000);
   
-  await page.waitForTimeout(2000);
-  await page.type('.chat-input textarea', message, { delay: 50 });
+  // Simuler la frappe du message
+  await page.type('.chat-input textarea', message);
+  await page.waitForTimeout(500);
+  
+  // Simuler l'envoi
   await page.click('.chat-input button[type="submit"]');
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1000);
   
-  console.log(`✅ Message envoyé à ${fanId}`);
-}
+  console.log(`✅ Message simulé envoyé à ${fanId}`);
+  console.log(`
 

@@ -1,8 +1,8 @@
-// Version simplifiée sans base de données
+// src/db/simple-store.js - Base de données mémoire simple
 const conversations = new Map();
 
 export async function initDB() {
-  console.log("✅  Base de données mémoire initialisée");
+  console.log("✅ Base de données mémoire initialisée");
   return { conversations };
 }
 
@@ -15,8 +15,11 @@ export async function getOrCreateConversation(db, userId) {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
+    console.log(`✅ Nouvelle conversation créée pour ${userId}`);
   }
-  return db.conversations.get(userId);
+  
+  const conversation = db.conversations.get(userId);
+  return conversation;
 }
 
 export async function updateConversation(db, userId, lastMessage, lastResponse) {
@@ -25,6 +28,7 @@ export async function updateConversation(db, userId, lastMessage, lastResponse) 
     conv.last_message = lastMessage;
     conv.last_response = lastResponse;
     conv.updated_at = new Date().toISOString();
+    console.log(`✅ Conversation mise à jour pour ${userId}`);
   }
 }
 

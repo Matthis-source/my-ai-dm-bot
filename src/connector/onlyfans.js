@@ -1,116 +1,102 @@
-// src/connector/onlyfans.js
-import puppeteer from "puppeteer";
-import dotenv from "dotenv";
+// src/connector/onlyfans.js - Version corrigée pour Railway
+import puppeteer from 'puppeteer-core';
 
-dotenv.config();                       // charge les variables du fichier .env
+// Utiliser process.env directement
+const cookiesEnv = process.env.ONLYFANS_COOKIES;
 
-const COOKIE_ENV = "ONLYFANS_COOKIES";
+if (!cookiesEnv) {
+  console.error("❌ ONLYFANS_COOKIES manquante dans process.env");
+  console.log("Vérifie les variables dans Railway > Variables");
+  throw new Error("ONLYFANS_COOKIES manquante");
+}
+
+console.log("✅ Cookies chargés depuis process.env");
 
 /**
- * Lance Chrome (headless), injecte les cookies depuis .env
- * et vérifie que la navigation aboutit bien au tableau de bord.
- *
- * @returns {{browser: puppeteer.Browser, page: puppeteer.Page}}
- * @throws  si les cookies sont absents, expirés ou incorrects
+ * Lance le navigateur avec les cookies OnlyFans
  */
 export async function launchBrowser() {
-  // -----------------------------------------------------------------
-  // 1️⃣  Démarrage du navigateur (headless = true pour la prod)
-  // -----------------------------------------------------------------
+  let cookies;
+  try {
+    cookies = JSON.parse(cookiesEnv);
+    console.log(`✅ ${cookies.length} cookie(s) parsé(s)`);
+  } catch (error) {
+    console.error("❌ Erreur de parsing des cookies:", error);
+    throw new Error("Format des cookies invalide");
+  }
+
   const browser = await puppeteer.launch({
-    headless: true,                     // passe à false si tu veux voir le navigateur
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   const page = await browser.newPage();
-
-  // -----------------------------------------------------------------
-  // 2️⃣  Charger les cookies depuis la variable d’environnement
-  // -----------------------------------------------------------------
-  const raw = process.env[COOKIE_ENV];
-  if (!raw) {
-    throw new Error(
-      `⚠️  Variable d’environnement ${COOKIE_ENV} manquante. ` +
-      `Ajoute tes cookies dans le fichier .env.`
-    );
-  }
-
-  // `raw` doit être un tableau JSON ; on le parse alors
-  const cookies = JSON.parse(raw);
+  
+  // Définir les cookies
   await page.setCookie(...cookies);
-
-  // -----------------------------------------------------------------
-  // 3️⃣  Vérifier que la navigation nous a bien redirigés
-  //     vers le tableau de bord (c’est-à‑dire que les cookies sont valides)
-  // -----------------------------------------------------------------
-  await page.goto("https://onlyfans.com/dashboard", {
-    waitUntil: "networkidle2",
-    timeout: 15000,            // 15 s max d’attente
+  
+  // Aller sur OnlyFans pour vérifier la connexion
+  await page.goto('https://onlyfans.com', { waitUntil: 'networkidle2' });
+  
+  // Vérifier si on est connecté
+  const isLoggedIn = await page.evaluate(() => {
+    return document.querySelector('a[href*="/my/profile"]') !== null;
   });
 
-  // Si l’URL contient toujours "/login", les cookies ne fonctionnent pas.
-  if (page.url().includes("/login")) {
+  if (!isLoggedIn) {
     await browser.close();
-    throw new Error(
-      "❌  Impossible de se connecter – les cookies sont peut‑être expirés ou incomplets."
-    );
+    throw new Error('❌ Impossible de se connecter – les cookies sont peut-être expirés ou incomplets.');
   }
 
-  console.log("✅  Connecté à OnlyFans !");
+  console.log('✅ Connecté à OnlyFans !');
   return { browser, page };
 }
 
 /**
- * Récupère les DM non lus (ou l’ensemble des conversations).
- *
- * @param {puppeteer.Page} page – page déjà authentifiée
- * @returns {Promise<Array<{fanId:string, fanName:string, preview:string, link:string}>>}
+ * Récupère les DMs non lus
  */
 export async function fetchUnreadDMs(page) {
-  await page.goto("https://onlyfans.com/my/chats", {
-    waitUntil: "networkidle2",
+  await page.goto('https://onlyfans.com/my/chats', { waitUntil: 'networkidle2' });
+  
+  const unreadDMs = await page.evaluate(() => {
+    const dms = [];
+    const chatItems = document.querySelectorAll('.chat-list-item');
+    
+    chatItems.forEach(item => {
+      const unreadBadge = item.querySelector('.unread');
+      if (unreadBadge) {
+        const link = item.querySelector('a');
+        const name = item.querySelector('.name');
+        const preview = item.querySelector('.preview');
+        
+        if (link && name) {
+          dms.push({
+            fanId: link.href.split('/').pop(),
+            fanName: name.textContent.trim(),
+            preview: preview ? preview.textContent.trim() : 'No preview',
+            link: link.href
+          });
+        }
+      }
+    });
+    
+    return dms;
   });
 
-  // Attendre le sélecteur qui indique les conversations non lues.
-  // (Si aucun DM non lu, le sélecteur n’apparaît pas → on ignore l’erreur.)
-  await page.waitForSelector(".chat-list-item.unread", { timeout: 5000 }).catch(() => {});
-
-  const msgs = await page.$$eval(".chat-list-item.unread", (items) => {
-    return items.map((el) => ({
-      fanName: el.querySelector(".username")?.innerText.trim() || "Unknown",
-      fanId: el.getAttribute("data-user-id"),
-      preview: el.querySelector(".preview")?.innerText.trim() || "",
-      link: el.querySelector("a")?.href,
-    }));
-  });
-
-  console.log(`📨  ${msgs.length} DM(s) non lus récupéré(s).`);
-  return msgs;
+  console.log(`📨 ${unreadDMs.length} DM(s) non lus récupéré(s).`);
+  return unreadDMs;
 }
 
 /**
- * Envoie un texte à un fan.
- *
- * @param {puppeteer.Page} page – page déjà authentifiée
- * @param {string} fanId – identifiant du fan (ex. "12345678")
- * @param {string} text – texte à envoyer
+ * Envoie un message à un fan
  */
-export async function sendMessage(page, fanId, text) {
-  await page.goto(`https://onlyfans.com/chat/${fanId}`, {
-    waitUntil: "networkidle2",
-  });
-
-  // Attendre que le champ de saisie soit présent
-  await page.waitForSelector("textarea[name='message']", { timeout: 5000 });
-
-  // Taper le texte (un petit délai pour imiter un humain)
-  await page.type("textarea[name='message']", text, { delay: 30 });
-
-  // Cliquer sur le bouton d’envoi
-  await page.click("button[data-action='send']");
-
-  // Petite pause afin que le message soit effectivement envoyé
-  await page.waitForTimeout(800);
-  console.log(`✅  Message envoyé à fanId=${fanId}`);
+export async function sendMessage(page, fanId, message) {
+  await page.goto(`https://onlyfans.com/my/chats/${fanId}`, { waitUntil: 'networkidle2' });
+  
+  await page.type('.chat-input textarea', message);
+  await page.click('.chat-input button[type="submit"]');
+  await page.waitForTimeout(2000);
+  
+  console.log(`✅ Message envoyé à ${fanId}`);
 }
 

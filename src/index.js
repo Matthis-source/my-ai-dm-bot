@@ -1,12 +1,14 @@
-// src/index.js - VERSION CORRIGÉE
+// src/index.js - Version finale corrigée
+import './check-env.js'; // Debug des variables
+
 import { launchBrowser, fetchUnreadDMs, sendMessage } from "./connector/onlyfans.js";
-import { initDB, getOrCreateConversation, updateConversation } from './db/simple-store.js';
+import { initDB, getOrCreateConversation, updateConversation } from "./db/simple-store.js";
 import { generateResponse } from "./ai/chat.js";
 import { notifyDiscord } from "./notifier/discord.js";
 
-const POLL_INTERVAL_MS = 2 * 60 * 1000;   // toutes les 2 minutes
+const POLL_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 
-// Templates simples (on les met en dur pour l'instant)
+// Templates simples
 const templates = {
   greeting: "Hey there! Thanks for your message. I have some exclusive content you might enjoy.",
   not_allowed: "I'm sorry, I can't respond to that type of message automatically.",
@@ -15,21 +17,21 @@ const templates = {
 };
 
 /**
- * Traite un DM en utilisant l'IA
+ * Traite un DM
  */
 async function processDM(page, dm, db) {
   const fanMessage = dm.preview;
   const fanData = {
     fan_name: dm.fanName,
-    activity: "a slow tease",
+    activity: "exclusive content",
     price: "5"
   };
 
   try {
-    // 1️⃣ Récupérer ou créer la conversation
+    // 1. Récupérer la conversation
     const conversation = await getOrCreateConversation(db, dm.fanId);
     
-    // 2️⃣ Générer la réponse via l'IA
+    // 2. Générer la réponse
     const { text: reply, flagged } = await generateResponse({
       fanMessage,
       fanData,
@@ -37,23 +39,22 @@ async function processDM(page, dm, db) {
       templates,
     });
 
-    // 3️⃣ Envoyer la réponse au fan
+    console.log(`🤖 Réponse pour ${dm.fanName}: ${reply.substring(0, 50)}...`);
+
+    // 3. Envoyer le message
     await sendMessage(page, dm.fanId, reply);
 
-    // 4️⃣ Mettre à jour la base de données
+    // 4. Mettre à jour la base
     await updateConversation(db, dm.fanId, fanMessage, reply);
 
-    console.log(`✅  Réponse envoyée à ${dm.fanName}: ${reply.substring(0, 50)}...`);
-
-    // 5️⃣ Notifier Discord si message flaggé
+    // 5. Notifier si flaggé
     if (flagged) {
-      await notifyDiscord(
-        `⚠️  Message flaggé de **${dm.fanName}** (ID ${dm.fanId}) – nécessite une vérification manuelle.`
-      );
+      console.log(`🚩 Message flaggé pour ${dm.fanName}`);
+      await notifyDiscord(`⚠️ Message flaggé de ${dm.fanName}`);
     }
 
   } catch (err) {
-    console.error(`❌  Erreur de traitement pour ${dm.fanName}:`, err);
+    console.error(`❌ Erreur avec ${dm.fanName}:`, err.message);
   }
 }
 
@@ -63,59 +64,58 @@ async function processDM(page, dm, db) {
 async function mainLoop() {
   let db;
   let browser;
-  
+
   try {
-    // Initialiser la base de données
+    console.log("🔄 Démarrage de la vérification des DMs...");
+    
+    // Initialiser la DB
     db = await initDB();
     
-    // Ouvrir le navigateur
+    // Lancer le navigateur
     const browserInfo = await launchBrowser();
     browser = browserInfo.browser;
     const page = browserInfo.page;
 
-    console.log("✅  Connecté à OnlyFans !");
-
     // Récupérer les DMs non lus
     const unread = await fetchUnreadDMs(page);
-    console.log(`📨  ${unread.length} DM(s) non lus récupéré(s).`);
 
     if (unread.length === 0) {
-      console.log("✅  Aucun nouveau DM.");
-      return;
-    }
-
-    // Traiter chaque DM
-    for (const dm of unread) {
-      await processDM(page, dm, db);
+      console.log("✅ Aucun nouveau DM.");
+    } else {
+      // Traiter chaque DM
+      for (const dm of unread) {
+        await processDM(page, dm, db);
+      }
+      console.log(`✅ ${unread.length} DM(s) traités.`);
     }
 
   } catch (err) {
-    console.error("❌  Erreur dans la boucle principale:", err);
+    console.error("❌ Erreur dans mainLoop:", err.message);
   } finally {
-    // Fermer les ressources
+    // Nettoyage
     if (browser) {
       await browser.close();
+      console.log("🌐 Navigateur fermé.");
     }
-    if (db) {
-    }
+    // Pas de db.close() nécessaire avec la DB mémoire
   }
 }
 
-// Gérer les arrêts propres
+// Gestion des arrêts
 process.on('SIGINT', () => {
-  console.log('🛑  Arrêt du bot...');
+  console.log('🛑 Arrêt du bot...');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('🛑  Arrêt du bot...');
+  console.log('🛑 Arrêt du bot...');
   process.exit(0);
 });
 
-// Démarrer la boucle
-console.log(`🕒  Bot démarré – vérifie les DM toutes les ${POLL_INTERVAL_MS / 60000} minutes.`);
+// Démarrer
+console.log(`🕒 Bot démarré - vérification toutes les ${POLL_INTERVAL_MS / 60000} minutes`);
 setInterval(mainLoop, POLL_INTERVAL_MS);
 
-// Premier lancement immédiat
-mainLoop();
+// Premier lancement
+setTimeout(mainLoop, 5000);
 

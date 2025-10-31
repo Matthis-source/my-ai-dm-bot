@@ -1,14 +1,11 @@
-// src/connector/onlyfans.js - Version corrigée pour Render
+// src/connector/onlyfans.js - Version avec chrome-aws-lambda
 import puppeteer from 'puppeteer-core';
+import chrome from 'chrome-aws-lambda';
 
 console.log("🚀 Mode RÉEL OnlyFans activé !");
 
-// Utiliser les variables Render
 const cookiesEnv = process.env.ONLYFANS_COOKIES;
 
-/**
- * Lance le navigateur avec les cookies OnlyFans
- */
 export async function launchBrowser() {
   console.log("🔐 Connexion réelle à OnlyFans...");
   
@@ -21,19 +18,11 @@ export async function launchBrowser() {
     throw new Error("Format des cookies invalide");
   }
 
-  // Configuration Puppeteer pour Render
+  // Configuration pour Render avec chrome-aws-lambda
   const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu'
-    ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser'
+    args: chrome.args,
+    executablePath: await chrome.executablePath,
+    headless: chrome.headless,
   });
 
   const page = await browser.newPage();
@@ -60,9 +49,6 @@ export async function launchBrowser() {
   return { browser, page };
 }
 
-/**
- * Récupère les DMs non lus
- */
 export async function fetchUnreadDMs(page) {
   console.log("📨 Récupération des DMs non lus...");
   
@@ -102,9 +88,6 @@ export async function fetchUnreadDMs(page) {
   return unreadDMs;
 }
 
-/**
- * Envoie un message à un fan
- */
 export async function sendMessage(page, fanId, message) {
   console.log(`✉️  Envoi de message à ${fanId}...`);
   
@@ -114,11 +97,7 @@ export async function sendMessage(page, fanId, message) {
   });
   
   await page.waitForTimeout(2000);
-  
-  // Taper le message
   await page.type('.chat-input textarea', message, { delay: 50 });
-  
-  // Envoyer
   await page.click('.chat-input button[type="submit"]');
   await page.waitForTimeout(2000);
   

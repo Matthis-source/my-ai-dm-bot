@@ -1,16 +1,16 @@
-// src/ai/chat.js - Version corrigée pour Railway
+// src/ai/chat.js - Version temporaire
 import OpenAI from 'openai';
 
-// Utiliser process.env directement (pas de dotenv sur Railway)
+// TEMPORAIRE : Gérer l'absence de clé API
 const apiKey = process.env.OPENAI_API_KEY;
+let openai = null;
 
-if (!apiKey) {
-  console.log("❌ OPENAI_API_KEY manquante");
+if (apiKey) {
+  console.log("✅ OpenAI configuré avec clé API");
+  openai = new OpenAI({ apiKey });
 } else {
-  console.log("✅ OPENAI_API_KEY chargée");
+  console.log("🔧 Mode démo - OpenAI simulé");
 }
-
-const openai = apiKey ? new OpenAI({ apiKey }) : null;
 
 /**
  * Vérifie si un message nécessite une modération

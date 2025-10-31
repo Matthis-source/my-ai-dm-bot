@@ -1,5 +1,5 @@
 // src/index.js - Version finale corrigée
-import './check-env.js'; // Debug des variables
+import './debug-railway-deep.js'; // Debug approfondi
 
 import { launchBrowser, fetchUnreadDMs, sendMessage } from "./connector/onlyfans.js";
 import { initDB, getOrCreateConversation, updateConversation } from "./db/simple-store.js";

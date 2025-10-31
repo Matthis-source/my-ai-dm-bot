@@ -140,5 +140,6 @@ export async function sendMessage(page, fanId, message) {
   await page.waitForTimeout(1000);
   
   console.log(`✅ Message simulé envoyé à ${fanId}`);
-  console.log(`
+  console.log(`💬 Contenu: "${message.substring(0, 80)}..."`);
+}
 
